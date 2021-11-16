@@ -8,6 +8,10 @@ static const uint8_t busyPin = 5; // The pin number of the busy pin.
 
 WTV020SD16P wtv020sd16p(resetPin, clockPin, dataPin, busyPin);
 
+boolean stateOn = false;
+unsigned long lastDebouncetime = 0;
+unsigned long debounceDelay = 25;
+
 boolean isPlaying = false;
 boolean isPaused = false;
 boolean stopTimer = false;
@@ -21,100 +25,50 @@ void play();
 void setup() {
   Serial.begin(9600);
   // wtv020sd16p.reset();
+  // wtv020sd16p.setVolume(50);
 }
 
 void loop() {
+  boolean currentStateOn = (analogRead(A7) < threshold) ? true : false;
 
-  // Serial.println(analogRead(A7));
-  // delay(1000);
+  if (currentStateOn != stateOn) {
+    lastDebouncetime = millis();
+  }
 
-  if (analogRead(A7) < threshold && isPlaying == false) {
-    if (isPaused == false) {
-      Serial.println("playing");
-      isPlaying = true;
+  if((millis() - lastDebouncetime) > debounceDelay) {
+    if (currentStateOn && isPlaying == false) {
+      if (isPaused == false) {
+      // wtv020sd16p.asyncPlayVoice(0);
+        Serial.println("playing");
+        isPlaying = true;
+      }
+      else {
+      // wtv020sd16p.pauseVoice();
+        Serial.println("unpausing");
+        isPlaying = true;
+        isPaused = false;
+        stopTimer = false;
+      }
     }
-    else {
-      Serial.println("unpausing");
-      isPlaying = true;
+
+    if (analogRead(A7) > threshold && isPlaying == true) {
+      // wtv020sd16p.pauseVoice();
+      Serial.println("pausing");
+      isPlaying = false;
+      isPaused = true;
+      pauseTime = millis();
+      stopTimer = true;
+    }
+
+    if (stopTimer == true && millis() - pauseTime >= waitTime) {
+      // wtv020sd16p.stopVoice();
+      Serial.println("stopping");
       isPaused = false;
       stopTimer = false;
     }
   }
 
-  if (analogRead(A7) > threshold && isPlaying == true) {
-    Serial.println("pausing");
-    isPlaying = false;
-    isPaused = true;
-    pauseTime = millis();
-    stopTimer = true;
-  }
-
-  if (stopTimer == true && millis() - pauseTime >= waitTime) {
-    Serial.println("stopping");
-    isPaused = false;
-    stopTimer = false;
-  }
-
-  // if (analogRead(A7) < threshold && isPlaying == false && isPaused == false) {
-  //   // wtv020sd16p.asyncPlayVoice(0);
-  //   Serial.println("Starting playback");
-  //   isPlaying = true;
-  // }
-  // else if (analogRead(A7) < threshold && isPlaying == true && isPaused == true) {
-  //   // wtv020sd16p.pauseVoice();
-  //   Serial.println("Unpausing playback");
-  //   isPaused = false;
-  // } // if paused, unpause
-  // else if (analogRead(A7) > threshold && isPlaying == true && isPaused == false) {
-  //   // wtv020sd16p.pauseVoice();
-  //   Serial.println("Pausing playback");
-  //   isPaused == true;
-  // } // if light is on pause voice
-
-
-  // switch(analogRead(A7) < threshold) {
-  //       case true: 
-  //           switch(isPlaying) {
-  //             case false:
-  //               switch(isPaused) {
-  //                 case false:
-  //                   Serial.println("starting playback");
-  //                   isPlaying = true;
-  //                   break;
-  //                 case true:
-  //                   break;
-  //               }
-  //               break;
-  //             case true:
-  //               switch(isPaused) {
-  //                 case false:
-  //                   break;
-  //                 case true:
-  //                   Serial.println("unpausing playback");
-  //                   isPaused = false;
-  //                   break;
-  //               }
-  //               break;
-  //           }
-  //           break;
-  //       case false:
-  //           switch(isPlaying) {
-  //             case false:
-  //               break;
-  //             case true:
-  //               switch(isPaused) {
-  //                 case true:
-  //                   break;
-  //                 case false:
-  //                   Serial.println("pausing playback");
-  //                   isPaused = true;
-  //                   break;
-  //               }
-  //               break;
-  //           }
-  //           break;
-    // }
-
+  stateOn = currentStateOn;
 }
 
 
