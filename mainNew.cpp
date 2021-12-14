@@ -9,12 +9,11 @@ static const uint8_t busyPin = 5; // The pin number of the busy pin.
 WTV020SD16P wtv020sd16p(resetPin, clockPin, dataPin, busyPin);
 
 boolean isPlaying = false;
-boolean stateOn = false;
 boolean stopTimer = false;
-boolean firstBoot = true;
-int16_t threshold = 300;
+int16_t threshold = 100;
 unsigned long pauseTime = 0;
-unsigned long waitTime = 15000;
+unsigned long waitTime = 1000;
+
 
 void setup() {
   Serial.begin(9600);
@@ -23,12 +22,7 @@ void setup() {
 }
 
 void loop() {
-  if (firstBoot) {
-    delay(2000);
-    firstBoot = false;
-  }
-
-  stateOn = (analogRead(A7) < threshold) ? true : false;
+  boolean stateOn = (analogRead(A7) < threshold) ? true : false;
 
     if (stateOn && isPlaying == false) {
       wtv020sd16p.asyncPlayVoice(0);
@@ -37,22 +31,26 @@ void loop() {
       isPlaying = true;
       stopTimer = false;
     }
-
-    else if (stateOn && isPlaying == true && stopTimer == true) {
-      Serial.println("Cancelling countdown timer");
-      stopTimer = false; 
-    }
-
-    else if (!stateOn && isPlaying == true && stopTimer == false) {
-      Serial.println("Starting countdown timer");
-      pauseTime = millis();
-      stopTimer = true;
-    }
-
-    else if (stopTimer == true && millis() - pauseTime >= waitTime) {
+    else if(!stateOn && isPlaying == true) {
       wtv020sd16p.stopVoice();
       Serial.println("stopping");
-      stopTimer = false;
       isPlaying = false;
     }
+
+    // if (stateOn && isPlaying == true && stopTimer == true) {
+    //   stopTimer = false; 
+    // }
+
+    // if (!stateOn && isPlaying == true && stopTimer == false) {
+    //   Serial.println("Starting countdown timer");
+    //   pauseTime = millis();
+    //   stopTimer = true;
+    // }
+
+    // if (stopTimer == true && millis() - pauseTime >= waitTime) {
+    //   wtv020sd16p.stopVoice();
+    //   Serial.println("stopping");
+    //   stopTimer = false;
+    //   isPlaying = false;
+    // }
 }
